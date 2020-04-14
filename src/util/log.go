@@ -15,7 +15,7 @@ var (
 
 func init() {
 	ErrorLog = log.New(os.Stderr, "[ERROR]", log.Lshortfile|log.Ldate|log.Ltime)
-	InfoLog = log.New(os.Stderr, "[INFO]", log.Lshortfile|log.Ldate|log.Ltime)
-	DebugLog = log.New(os.Stderr, "[DEBUG]", log.Lshortfile|log.Ldate|log.Ltime)
-	WarnLog = log.New(os.Stderr, "[WARN]", log.Lshortfile|log.Ldate|log.Ltime)
+	InfoLog = log.New(os.Stdout, "[INFO]", log.Lshortfile|log.Ldate|log.Ltime)
+	DebugLog = log.New(os.Stdout, "[DEBUG]", log.Lshortfile|log.Ldate|log.Ltime)
+	WarnLog = log.New(os.Stdout, "[WARN]", log.Lshortfile|log.Ldate|log.Ltime)
 }
