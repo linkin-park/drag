@@ -13,9 +13,7 @@ import (
 )
 
 var seedURL = []string{
-	"https://www.google.com/search?source=hp&q=%s&oq=%s",
-	"https://www.google.com/search?q=%s",
-	"https://duckduckgo.com/?q=%s",
+	"https://duckduckgo.com/html/",
 }
 
 // Result holds the information
@@ -95,7 +93,12 @@ func Request(input string) (string, error) {
 	}()
 
 	// sanitize input , random choose of seedURL TODO()
-	httpResp, err := webClient.Get(fmt.Sprintf(seedURL[0], input))
+	httpResp, err := webClient.Post(
+		seedURL[0],
+		"application/x-www-form-urlencoded",
+		strings.NewReader(fmt.Sprintf("q=%s", input)),
+	)
+
 	if err != nil {
 		return "", err
 	}
