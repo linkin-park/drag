@@ -1,7 +1,6 @@
 package helper
 
 import (
-	"fmt"
 	"strings"
 	"sync"
 
@@ -32,7 +31,6 @@ func ParseHTMLByTag(content string, parseParam *ParseParam) {
 					if tagExist :=
 						strings.ToLower(t.Data) == strings.ToLower(tagDetail.Tag); tagExist {
 
-						fmt.Println("Found Tag!")
 						wg.Add(1)
 						go tagDetail.CallFunc(t, wg)
 					}
