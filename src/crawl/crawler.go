@@ -12,9 +12,7 @@ import (
 	"golang.org/x/net/html"
 )
 
-var seedURL = []string{
-	"https://duckduckgo.com/html/",
-}
+const seedURL = "https://duckduckgo.com/html/"
 
 // Result holds the information
 // often used with crawl
@@ -33,6 +31,13 @@ func RetrieveInfoOnXPage(content string) (Result, error) {
 	var result Result
 	param := &helper.ParseParam{
 		TagDetails: []helper.TagDetail{
+			{
+				Tag: "title",
+				CallFunc: func(t html.Token, wg *sync.WaitGroup) {
+					defer wg.Done()
+					result.Title = t.Data
+				},
+			},
 			{
 				Tag: "a",
 				CallFunc: func(t html.Token, wg *sync.WaitGroup) {
@@ -82,19 +87,57 @@ func RetrieveInfoOnXPage(content string) (Result, error) {
 	return result, nil
 }
 
-// Request a webRequest for the input given
-func Request(input string) (string, error) {
+// WebRequest for the given link
+func WebRequest(link string) (string, error) {
 	defer func() {
 		err := recover()
 		if err != nil {
-			logger.DebugLog.Printf("Error on Request %#v", err)
-			logger.ErrorLog.Printf("Error on Request %#v", err)
+			logger.Printf(logger.DebugLevel, "Error on Request %#v", err)
+			logger.Printf(logger.ErrorLevel, "Error on Request %#v", err)
+		}
+	}()
+
+	// sanitize input , random choose of seedURL TODO()
+	httpResp, err := webClient.Get(link)
+	if err != nil {
+		return "", err
+	}
+	defer httpResp.Body.Close()
+
+	if httpResp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("Invalid Status %d", httpResp.StatusCode)
+	}
+
+	return func() (string, error) {
+		tmp := make([]byte, 1024)
+		finalByts := make([]byte, 0)
+
+		for rdN, err := httpResp.Body.Read(tmp); rdN > 0; {
+			if err != nil && err.Error() != "EOF" {
+				return "", err
+			}
+
+			finalByts = append(finalByts, tmp[:rdN]...)
+			rdN, err = httpResp.Body.Read(tmp)
+		}
+
+		return string(finalByts), nil
+	}()
+}
+
+// SeedRequestForXPage a webRequest for the input given
+func SeedRequestForXPage(input string) (string, error) {
+	defer func() {
+		err := recover()
+		if err != nil {
+			logger.Printf(logger.DebugLevel, "Error on Request %#v", err)
+			logger.Printf(logger.ErrorLevel, "Error on Request %#v", err)
 		}
 	}()
 
 	// sanitize input , random choose of seedURL TODO()
 	httpResp, err := webClient.Post(
-		seedURL[0],
+		seedURL,
 		"application/x-www-form-urlencoded",
 		strings.NewReader(fmt.Sprintf("q=%s", input)),
 	)
