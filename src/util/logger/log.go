@@ -13,7 +13,7 @@ var (
 	warnLog  *log.Logger
 )
 
-const defaultLogLevel = iota + 1
+const defaultLogLevel = iota
 
 // LogLevel to be used for logging
 type LogLevel int
