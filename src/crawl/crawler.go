@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/drag/src/util/helper"
@@ -33,15 +32,29 @@ func RetrieveInfoOnXPage(content string) (Result, error) {
 		TagDetails: []helper.TagDetail{
 			{
 				Tag: "title",
-				CallFunc: func(t html.Token, wg *sync.WaitGroup) {
-					defer wg.Done()
-					result.Title = t.Data
+				CallFunc: func(t html.Token, toknzr *html.Tokenizer) {
+					defer func() {
+						if x := recover(); x != nil {
+							logger.Println(logger.ErrorLevel, x)
+						}
+					}()
+
+					for toknzr.Next() != html.ErrorToken {
+						if x := toknzr.Text(); x != nil {
+							result.Title = string(x)
+							return
+						}
+					}
 				},
 			},
 			{
 				Tag: "a",
-				CallFunc: func(t html.Token, wg *sync.WaitGroup) {
-					defer wg.Done()
+				CallFunc: func(t html.Token, toknzr *html.Tokenizer) {
+					defer func() {
+						if x := recover(); x != nil {
+							logger.Println(logger.ErrorLevel, x)
+						}
+					}()
 
 					for _, attr := range t.Attr {
 						if strings.ToLower(attr.Key) == "href" {
@@ -57,8 +70,12 @@ func RetrieveInfoOnXPage(content string) (Result, error) {
 			},
 			{
 				Tag: "meta",
-				CallFunc: func(t html.Token, wg *sync.WaitGroup) {
-					defer wg.Done()
+				CallFunc: func(t html.Token, toknzr *html.Tokenizer) {
+					defer func() {
+						if x := recover(); x != nil {
+							logger.Println(logger.ErrorLevel, x)
+						}
+					}()
 
 					var isDesc = false
 					var isKeyword = false
