@@ -1,22 +1,22 @@
 package main
 
 import (
-	"fmt"
 	"testing"
 
-	crawl "github.com/drag/src/crawl"
+	"github.com/drag/src/crawl"
 	"github.com/drag/src/util/logger"
 )
 
-func scrapeOnXPage() {
-}
-
 func TestRequest(t *testing.T) {
-	content, err := crawl.SeedRequestForXPage("black magic")
-	if err != nil {
-		t.Error(err)
+	var w crawl.WebSpider
+	w.Start(crawl.Config{
+		TimeoutMinute: 1,
+		Search:        "covid",
+	})
+
+	sum := 0
+	for _, r := range w.Results {
+		sum += len(r.Links)
 	}
-	rslt, _ := crawl.RetrieveInfoOnXPage(content)
-	logger.Printf(logger.InfoLevel, "%#v\n\n", rslt)
-	fmt.Println("links size:", len(rslt.Links))
+	logger.Println(logger.InfoLevel, len(w.Results), sum)
 }
