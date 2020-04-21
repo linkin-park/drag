@@ -4,8 +4,12 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/drag/src/util/logger"
 	"golang.org/x/net/html"
 )
+
+// generate an AST? // not good on crawling!
+// AST query !! // not required!
 
 // ParseHTMLByTag you parse html by tags given in struct
 func ParseHTMLByTag(content string, parseParam *ParseParam) {
@@ -19,23 +23,31 @@ func ParseHTMLByTag(content string, parseParam *ParseParam) {
 	for {
 		tokenType := tokenizer.Next()
 
-		switch {
-		case tokenType == html.ErrorToken:
+		switch tokenType {
+		case html.ErrorToken:
 			// End of document
 			return
-		case tokenType == html.StartTagToken:
+		case html.StartTagToken:
 			// no nested loop
-			func(t html.Token) {
+			func(t html.Token, toknzr *html.Tokenizer) {
+				defer func() {
+					if err := recover(); err != nil {
+						logger.Printf(
+							logger.ErrorLevel,
+							"\t %#v",
+							err)
+					}
+				}()
+
 				for _, tagDetail := range parseParam.TagDetails {
 
 					if tagExist :=
 						strings.ToLower(t.Data) == strings.ToLower(tagDetail.Tag); tagExist {
 
-						wg.Add(1)
-						go tagDetail.CallFunc(t, wg)
+						tagDetail.CallFunc(t, toknzr)
 					}
 				}
-			}(tokenizer.Token())
+			}(tokenizer.Token(), tokenizer)
 
 		}
 	}
@@ -50,5 +62,5 @@ type ParseParam struct {
 // TagDetail of every token to be crawled
 type TagDetail struct {
 	Tag      string
-	CallFunc func(html.Token, *sync.WaitGroup)
+	CallFunc func(html.Token, *html.Tokenizer)
 }
