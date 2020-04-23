@@ -1,6 +1,7 @@
 package crawl
 
 import (
+	"sync"
 	"time"
 
 	"github.com/drag/src/util/dsa"
@@ -17,17 +18,20 @@ type Config struct {
 type WebSpider struct {
 	queue   dsa.CQueueString
 	Results []Result
+	mux     sync.Mutex
 }
 
 // Start let the lord be with you
-func (c *WebSpider) Start(option Config) error {
+func (c *WebSpider) Start(
+	option Config,
+) error {
+	defer logger.Println(logger.InfoLevel, "Start", "Complete")
+	logger.Println(logger.InfoLevel, "Start", "Initiated")
+
 	// intialize
 	c.queue.IntializeDefultValues()
-	var rschan = make(chan Result)
 	var done = make(chan bool, 3)
-	var rcvrchan = make(chan bool)
-
-	go c.appendResult(rschan, done, rcvrchan)
+	var wgProducer = new(sync.WaitGroup)
 
 	// start
 	content, seedErr := SeedRequestForXPage(option.Search)
@@ -41,25 +45,33 @@ func (c *WebSpider) Start(option Config) error {
 	c.queue.Enqueue(rslt.Links...)
 	c.Results = append(c.Results, rslt)
 
-	go c.spin(rschan, done)
-	go c.spin(rschan, done)
-	go c.spin(rschan, done)
+	wgProducer.Add(3)
+	go c.spin(done, wgProducer)
+	go c.spin(done, wgProducer)
+	go c.spin(done, wgProducer)
 
 	clearSignal(
 		time.Duration(option.TimeoutMinute),
 		time.Minute,
 		done,
-		rcvrchan,
-		rschan)
+		wgProducer,
+	)
 
 	return nil
 }
 
 // spin over links in queue
 func (c *WebSpider) spin(
-	rschan chan<- Result,
 	done <-chan bool,
+	wgProducer *sync.WaitGroup,
 ) {
+
+	defer logger.Println(
+		logger.DebugLevel,
+		"spin",
+		"complete",
+	)
+	defer wgProducer.Done()
 
 	for c.queue.Size() > 0 {
 		select {
@@ -68,6 +80,7 @@ func (c *WebSpider) spin(
 		default:
 			lnk, _ := c.queue.Dequeue()
 			content, wbReqErr := WebRequest(lnk)
+
 			if wbReqErr != nil {
 				logger.Printf(
 					logger.ErrorLevel,
@@ -75,6 +88,7 @@ func (c *WebSpider) spin(
 					wbReqErr)
 			} else {
 				result, resultErr := RetrieveInfoOnXPage(content)
+
 				if resultErr != nil {
 					logger.Printf(
 						logger.ErrorLevel,
@@ -82,9 +96,9 @@ func (c *WebSpider) spin(
 						lnk,
 						resultErr)
 				}
+
 				c.queue.Enqueue(result.Links...)
-				rschan <- result
-				// logger.Printf(logger.DebugLevel, "%#v", len(c.Results))
+				c.appendResult(result)
 			}
 		}
 	}
@@ -94,8 +108,11 @@ func clearSignal(
 	x time.Duration,
 	d time.Duration,
 	done chan<- bool,
-	rcvrdone chan<- bool,
-	rschan chan<- Result) {
+	wgProducer *sync.WaitGroup,
+) {
+	defer func() {
+		logger.Println(logger.DebugLevel, "clearSignal", "Complete")
+	}()
 
 	select {
 	case <-time.After(time.Duration(x) * d):
@@ -103,28 +120,17 @@ func clearSignal(
 		done <- true
 		done <- true
 		close(done)
+		wgProducer.Wait()
 
-		rcvrdone <- true
-		close(rcvrdone)
-
-		close(rschan)
 		return
 	}
 }
 
 func (c *WebSpider) appendResult(
-	rschan <-chan Result,
-	done <-chan bool,
-	rcvrdone <-chan bool) {
+	rs Result,
+) {
+	c.mux.Lock()
+	defer c.mux.Unlock()
 
-	for {
-		select {
-		case <-rcvrdone:
-			return
-		default:
-			if rs, ok := <-rschan; ok {
-				c.Results = append(c.Results, rs)
-			}
-		}
-	}
+	c.Results = append(c.Results, rs)
 }
