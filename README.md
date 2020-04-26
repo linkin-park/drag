@@ -12,8 +12,8 @@ This is an on going project [for me].
 ```
 var w crawl.WebSpider
 	w.Start(crawl.Config{
-		TimeoutMinute: 1, // Timeout for depth ( > 0)
-		Search:        "covid",
+		Timeout: 1 * time.Minute, // Timeout for depth ( > 0)
+		Search:  "covid",
 	})
 fmt.Println(w.Results)
 ```
@@ -30,3 +30,4 @@ fmt.Println(w.Results)
 - Enhance efficiency
 - Refactor
 - Html parser
+- Functionality & Features
