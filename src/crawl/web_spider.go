@@ -8,10 +8,10 @@ import (
 	"github.com/drag/src/util/logger"
 )
 
-//Config for WebSpider
+// Config for WebSpider
 type Config struct {
-	TimeoutMinute int
-	Search        string
+	Timeout time.Duration
+	Search  string
 }
 
 // WebSpider everything stars here
@@ -51,8 +51,7 @@ func (c *WebSpider) Start(
 	go c.spin(done, wgProducer)
 
 	clearSignal(
-		time.Duration(option.TimeoutMinute),
-		time.Minute,
+		option.Timeout,
 		done,
 		wgProducer,
 	)
@@ -105,7 +104,6 @@ func (c *WebSpider) spin(
 }
 
 func clearSignal(
-	x time.Duration,
 	d time.Duration,
 	done chan<- bool,
 	wgProducer *sync.WaitGroup,
@@ -115,7 +113,7 @@ func clearSignal(
 	}()
 
 	select {
-	case <-time.After(time.Duration(x) * d):
+	case <-time.After(d):
 		done <- true
 		done <- true
 		done <- true
