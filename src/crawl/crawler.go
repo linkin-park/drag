@@ -77,24 +77,17 @@ func RetrieveInfoOnXPage(content string) (Result, error) {
 						}
 					}()
 
-					var isDesc = false
-					var isKeyword = false
+					var mpAttr = make(map[string]string)
+
 					for _, attr := range t.Attr {
-						// handling meta tag attr
-						switch {
-						case strings.ToLower(attr.Key) == "name" &&
-							strings.ToLower(attr.Val) == "description":
-							isDesc = true
-						case isDesc &&
-							strings.ToLower(attr.Key) == "content":
-							result.Description = attr.Val
-						case strings.ToLower(attr.Key) == "name" &&
-							strings.ToLower(attr.Val) == "Keywords":
-							isKeyword = true
-						case isKeyword &&
-							strings.ToLower(attr.Key) == "content":
-							result.Keywords = strings.Split(attr.Val, ",")
-						}
+						mpAttr[strings.ToLower(attr.Key)] = mpAttr[strings.ToLower(attr.Val)]
+					}
+
+					switch {
+					case mpAttr["name"] == "description":
+						result.Description = mpAttr["content"]
+					case mpAttr["name"] == "keywords":
+						result.Keywords = strings.Split(mpAttr["content"], ",")
 					}
 				},
 			},
