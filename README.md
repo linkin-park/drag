@@ -1,11 +1,10 @@
 # Drag
 
     Drag is a web spider which list all the links for the keyword given.
-    
+
     If you search "hell" it gives all the links for the given keyword (related).
 
 This is an on going project [for me].
-
 
 ## Usage
 
